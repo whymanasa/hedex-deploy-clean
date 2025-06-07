@@ -1,4 +1,4 @@
-name: Azure Web App Deploy - Hedex
+name: Build and Deploy Hedex to Azure
 
 on:
   push:
@@ -9,35 +9,30 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
+    env:
+      AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
+      AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+      AZURE_OPENAI_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_DEPLOYMENT }}
+      AZURE_OPENAI_API_VERSION: ${{ secrets.AZURE_OPENAI_API_VERSION }}
+      AZURE_TRANSLATOR_ENDPOINT: ${{ secrets.AZURE_TRANSLATOR_ENDPOINT }}
+      AZURE_TRANSLATOR_KEY: ${{ secrets.AZURE_TRANSLATOR_KEY }}
+      AZURE_TRANSLATOR_REGION: ${{ secrets.AZURE_TRANSLATOR_REGION }}
+      AZURE_FORM_RECOGNIZER_ENDPOINT: ${{ secrets.AZURE_FORM_RECOGNIZER_ENDPOINT }}
+      AZURE_FORM_RECOGNIZER_KEY: ${{ secrets.AZURE_FORM_RECOGNIZER_KEY }}
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: 🔄 Checkout code
+        uses: actions/checkout@v4
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v1
-
-      - name: Log in to Azure
+      - name: 🔐 Login to Azure using service principal
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Build client
-        working-directory: ./client
-        run: |
-          bun install
-          bun run build
-
-      - name: Install backend dependencies
-        working-directory: ./backend
-        run: |
-          bun install
-
-      - name: Zip build for deployment
-        run: |
-          zip -r hedex.zip client/dist backend backend/server.js backend/services package.json bun.lockb
-
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v2
+      - name: 📦 Build and deploy the app using Dockerfile
+        uses: azure/webapps-deploy@v3
         with:
           app-name: hex-builtforme123
-          package: hedex.zip
+          slot-name: production
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          images: ghcr.io/whymanasa/hedex-deploy-clean:latest
