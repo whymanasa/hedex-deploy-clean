@@ -1,0 +1,43 @@
+name: Azure Web App Deploy - Hedex
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Build client
+        working-directory: ./client
+        run: |
+          bun install
+          bun run build
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: |
+          bun install
+
+      - name: Zip build for deployment
+        run: |
+          zip -r hedex.zip client/dist backend backend/server.js backend/services package.json bun.lockb
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: hex-builtforme123
+          package: hedex.zip
