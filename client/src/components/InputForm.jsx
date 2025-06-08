@@ -249,20 +249,52 @@ function InputForm({ setLocalizedContent, preferredLanguage, messages, setMessag
       formData.append('content', content);
       formData.append('language', language || 'en');
 
-      const response = await axios.post('/generate-quiz', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Add retry logic and better error handling
+      const maxRetries = 3;
+      let retryCount = 0;
+      let lastError = null;
 
-      if (response.data.questions) {
-        setMessages(prev => [...prev, {
-          type: 'assistant',
-          content: JSON.stringify(response.data, null, 2)
-        }]);
-      } else {
-        throw new Error('Invalid quiz data received');
+      while (retryCount < maxRetries) {
+        try {
+          const response = await axios.post('/generate-quiz', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              'Accept': 'application/json',
+            },
+            timeout: 30000, // 30 second timeout
+          });
+
+          if (response.data.questions) {
+            setMessages(prev => [...prev, {
+              type: 'assistant',
+              content: JSON.stringify(response.data, null, 2)
+            }]);
+            return; // Success, exit the function
+          } else {
+            throw new Error('Invalid quiz data received');
+          }
+        } catch (error) {
+          lastError = error;
+          console.error(`Attempt ${retryCount + 1} failed:`, error);
+          
+          // Check if it's a client-side blocking error
+          if (error.message.includes('ERR_BLOCKED_BY_CLIENT')) {
+            setMessages(prev => [...prev, {
+              type: 'error',
+              content: t('error.request_blocked', 'Request blocked by browser extension. Please disable ad blocker or try in incognito mode.')
+            }]);
+            return; // Exit on client blocking
+          }
+
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+          retryCount++;
+        }
       }
+
+      // If we get here, all retries failed
+      throw lastError || new Error('Failed to generate quiz after multiple attempts');
+
     } catch (error) {
       console.error('Error generating quiz:', error);
       const errorMessage = error.response?.data?.details

@@ -201,7 +201,11 @@ app.post('/translate', upload.single('file'), async (req, res) => {
 // POST /generate-quiz endpoint
 app.post('/generate-quiz', upload.none(), async (req, res) => {
     try {
-        console.log('Quiz generation request received:', req.body);
+        console.log('Quiz generation request received:', {
+            body: req.body,
+            headers: req.headers
+        });
+
         const { content, language } = req.body;
         
         if (!content) {
@@ -211,12 +215,25 @@ app.post('/generate-quiz', upload.none(), async (req, res) => {
             });
         }
 
+        // Validate language
+        if (language && !SUPPORTED_LANGUAGES.includes(language)) {
+            return res.status(400).json({
+                error: 'Unsupported language',
+                details: { 
+                    language: `Language '${language}' is not supported. Please use one of the supported languages.`,
+                    supportedLanguages: SUPPORTED_LANGUAGES
+                }
+            });
+        }
+
         const cacheKey = `quiz-${Buffer.from(content).toString('base64')}-${language || 'en'}`;
         const cachedQuiz = quizCache.get(cacheKey);
         if (cachedQuiz) {
+            console.log('Returning cached quiz');
             return res.json(cachedQuiz);
         }
 
+        console.log('Generating new quiz with OpenAI');
         const response = await axiosInstance.post(
             `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version=${process.env.AZURE_OPENAI_API_VERSION}`,
             {
@@ -262,6 +279,7 @@ app.post('/generate-quiz', upload.none(), async (req, res) => {
                 throw new Error('Invalid quiz data structure');
             }
             
+            console.log('Successfully generated quiz');
             quizCache.set(cacheKey, quizData);
             res.json(quizData);
         } catch (parseError) {
