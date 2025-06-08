@@ -14,8 +14,7 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.resolve();
-
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 3000;
@@ -650,20 +649,8 @@ app.post('/download-docx', async (req, res) => {
 });
 
 // Serve static files from public directory
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Explicitly handle root path - serve landing page
-app.get('/', (req, res) => {
-  console.log('Handling root path request - serving landing page');
-  const indexPath = path.join(__dirname, 'public', 'index.html');
-  console.log('Serving index.html from:', indexPath);
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    console.error('index.html not found at:', indexPath);
-    res.status(404).send('Landing page not found');
-  }
-});
+const publicPath = path.join(__dirname, 'public');
+app.use(express.static(publicPath));
 
 // API routes
 app.use('/api', (req, res, next) => {
@@ -671,10 +658,10 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// Handle all other routes - serve the React app
+// Fallback to index.html for React Router
 app.get('*', (req, res) => {
-  console.log('Handling catch-all route for:', req.url);
-  const indexPath = path.join(__dirname, 'public', 'index.html');
+  const indexPath = path.join(publicPath, 'index.html');
+  console.log('Serving index.html from:', indexPath);
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
@@ -687,10 +674,9 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log('Server directory:', __dirname);
-  console.log('Public directory:', path.join(__dirname, 'public'));
-  // List contents of public directory on startup
-  if (fs.existsSync(path.join(__dirname, 'public'))) {
-    console.log('Public directory contents:', fs.readdirSync(path.join(__dirname, 'public')));
+  console.log('Public directory:', publicPath);
+  if (fs.existsSync(publicPath)) {
+    console.log('Public directory contents:', fs.readdirSync(publicPath));
   }
 });
 

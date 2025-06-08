@@ -1,35 +1,31 @@
-# Use Bun as the base image
-FROM oven/bun:1.0
-
-# Create working directory
+# === Stage 1: Build frontend with Node ===
+FROM node:18 AS builder
 WORKDIR /app
 
-# Copy package.json files
-COPY backend/package.json ./backend/
-COPY client/package.json ./client/
-
-# Install dependencies
-RUN cd backend && bun install
-RUN cd client && bun install
-
-# Copy source files
-COPY backend ./backend
+# Install frontend dependencies and build
 COPY client ./client
+WORKDIR /app/client
+RUN npm install && npm run build
 
-# Build frontend
-RUN cd client && bun run build
+# === Stage 2: Backend with Bun ===
+FROM oven/bun:1.0
 
-# Create necessary directories
-RUN mkdir -p backend/public backend/uploads
+# Set working dir
+WORKDIR /app
 
-# Copy built frontend files to backend public directory
-RUN cp -r client/dist/* backend/public/
+# Copy backend
+COPY backend ./backend
+WORKDIR /app/backend
 
-# Set permissions
-RUN chmod -R 755 backend/public
+# Install backend deps
+RUN bun install
 
-# Expose port
+# Create public dir
+RUN mkdir -p public
+
+# Copy built frontend from builder
+COPY --from=builder /app/client/dist ./public
+
+# Expose and start
 EXPOSE 3000
-
-# Start the application
-CMD ["bun", "backend/server.js"]
+CMD ["bun", "server.js"]
