@@ -256,12 +256,17 @@ function InputForm({ setLocalizedContent, preferredLanguage, messages, setMessag
 
       while (retryCount < maxRetries) {
         try {
-          const response = await axios.post('/generate-quiz', formData, {
+          // Use relative URL and add proper configuration
+          const response = await axios({
+            method: 'post',
+            url: '/generate-quiz', // Use relative URL
+            data: formData,
             headers: {
               'Content-Type': 'multipart/form-data',
               'Accept': 'application/json',
             },
             timeout: 30000, // 30 second timeout
+            withCredentials: true, // Include credentials if needed
           });
 
           if (response.data.questions) {

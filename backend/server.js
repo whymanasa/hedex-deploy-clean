@@ -40,15 +40,20 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Middleware
 app.use(cors({
-  origin: '*', // In production, replace with your actual domain
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL || 'http://localhost:3000'
+    : 'http://localhost:3000',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  credentials: true
 }));
 app.use(express.json());
 
 // Add debugging middleware
 app.use((req, res, next) => {
   console.log(`Received ${req.method} request for ${req.url}`);
+  console.log('Request headers:', req.headers);
+  console.log('Request origin:', req.get('origin'));
   console.log('Current directory:', __dirname);
   console.log('Public directory exists:', fs.existsSync(path.join(__dirname, 'public')));
   if (fs.existsSync(path.join(__dirname, 'public'))) {
@@ -203,7 +208,10 @@ app.post('/generate-quiz', upload.none(), async (req, res) => {
     try {
         console.log('Quiz generation request received:', {
             body: req.body,
-            headers: req.headers
+            headers: req.headers,
+            origin: req.get('origin'),
+            url: req.url,
+            method: req.method
         });
 
         const { content, language } = req.body;
