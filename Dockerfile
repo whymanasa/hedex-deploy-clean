@@ -1,18 +1,19 @@
-# Use Bun base image
+# Use Bun as the base image
 FROM oven/bun:1.0
 
-# Set working directory
+# Create working directory
 WORKDIR /app
 
-# Copy backend files
+# Copy backend and install deps
 COPY backend/ ./backend/
-
-# Install backend dependencies
 RUN cd backend && bun install
 
-# Copy prebuilt frontend
-COPY client/dist ./client/dist
+# Copy client and build it
+COPY client/ ./client/
+RUN cd client && bun install && bun run build
 
-# Serve with your backend
+# Expose your app port (adjust if different)
+EXPOSE 3000
+
+# Start your app
 CMD ["bun", "backend/server.js"]
-
