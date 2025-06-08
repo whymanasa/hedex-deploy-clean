@@ -15,3 +15,4 @@ COPY client/dist ./client/dist
 
 # Serve with your backend
 CMD ["bun", "backend/server.js"]
+
