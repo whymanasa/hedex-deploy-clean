@@ -1,6 +1,8 @@
 # Hedex - Multilingual Content Processing Platform
 With teh hope to make learners feel "Built for me".
 
+link--> https://hedex-deploy-clean.onrender.com (will take some time to load, be patient T_T)
+
 Hedex is a powerful web application that helps users process and understand content in multiple languages. It provides features for translation, summarization, and content analysis with support for various languages.
 
 ## Features
