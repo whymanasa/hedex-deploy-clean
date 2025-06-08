@@ -242,6 +242,84 @@ function InputForm({ setLocalizedContent, preferredLanguage, messages, setMessag
     }
   };
 
+  const handleGenerateQuiz = async (content, language) => {
+    try {
+      console.log('Creating questions for:', { content, language });
+      
+      // Validate input
+      if (!content) {
+        throw new Error(t('error.missing_content'));
+      }
+
+      // Create form data
+      const formData = new FormData();
+      formData.append('content', content);
+      formData.append('language', language || 'en');
+
+      // Add retry logic and better error handling
+      const maxRetries = 3;
+      let retryCount = 0;
+      let lastError = null;
+
+      while (retryCount < maxRetries) {
+        try {
+          // Use relative URL and add proper configuration
+          const response = await axios({
+            method: 'post',
+            url: '/create-questions', // Updated endpoint
+            data: formData,
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              'Accept': 'application/json',
+            },
+            timeout: 30000,
+            withCredentials: true,
+          });
+
+          if (response.data.questions) {
+            setMessages(prev => [...prev, {
+              type: 'assistant',
+              content: JSON.stringify(response.data, null, 2)
+            }]);
+            return; // Success, exit the function
+          } else {
+            throw new Error('Invalid question data received');
+          }
+        } catch (error) {
+          lastError = error;
+          console.error(`Attempt ${retryCount + 1} failed:`, error);
+          
+          // Check if it's a client-side blocking error
+          if (error.message.includes('ERR_BLOCKED_BY_CLIENT')) {
+            setMessages(prev => [...prev, {
+              type: 'error',
+              content: t('error.request_blocked', 'Request blocked by browser extension. Please disable ad blocker or try in incognito mode.')
+            }]);
+            return; // Exit on client blocking
+          }
+
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+          retryCount++;
+        }
+      }
+
+      // If we get here, all retries failed
+      throw lastError || new Error('Failed to create questions after multiple attempts');
+
+    } catch (error) {
+      console.error('Error creating questions:', error);
+      const errorMessage = error.response?.data?.details
+        ? Object.values(error.response.data.details).filter(Boolean).join(', ')
+        : error.response?.data?.error || error.message || t('error.question_creation_failed');
+
+      setMessages(prev => [...prev, {
+        type: 'error',
+        content: errorMessage
+      }]);
+    }
+  };
+
   return (
     <div className="flex flex-col flex-1 border border-[#71C0BB] rounded-lg overflow-hidden bg-white">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">

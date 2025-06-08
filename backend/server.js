@@ -203,10 +203,10 @@ app.post('/translate', upload.single('file'), async (req, res) => {
     }
 });
 
-// POST /generate-quiz endpoint
-app.post('/generate-quiz', upload.none(), async (req, res) => {
+// POST /create-questions endpoint (renamed from /generate-quiz)
+app.post('/create-questions', upload.none(), async (req, res) => {
     try {
-        console.log('Quiz generation request received:', {
+        console.log('Question creation request received:', {
             body: req.body,
             headers: req.headers,
             origin: req.get('origin'),
@@ -219,7 +219,7 @@ app.post('/generate-quiz', upload.none(), async (req, res) => {
         if (!content) {
             return res.status(400).json({
                 error: 'Missing content',
-                details: { content: 'Content is required for quiz generation' }
+                details: { content: 'Content is required for question creation' }
             });
         }
 
@@ -234,22 +234,22 @@ app.post('/generate-quiz', upload.none(), async (req, res) => {
             });
         }
 
-        const cacheKey = `quiz-${Buffer.from(content).toString('base64')}-${language || 'en'}`;
-        const cachedQuiz = quizCache.get(cacheKey);
-        if (cachedQuiz) {
-            console.log('Returning cached quiz');
-            return res.json(cachedQuiz);
+        const cacheKey = `questions-${Buffer.from(content).toString('base64')}-${language || 'en'}`;
+        const cachedQuestions = quizCache.get(cacheKey);
+        if (cachedQuestions) {
+            console.log('Returning cached questions');
+            return res.json(cachedQuestions);
         }
 
-        console.log('Generating new quiz with OpenAI');
+        console.log('Generating new questions with OpenAI');
         const response = await axiosInstance.post(
             `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version=${process.env.AZURE_OPENAI_API_VERSION}`,
             {
                 messages: [
                     {
                         role: "system",
-                        content: `You are an expert educational content creator. Create a quiz based on the provided content. 
-                        The quiz should:
+                        content: `You are an expert educational content creator. Create questions based on the provided content. 
+                        The questions should:
                         1. Have 5 multiple-choice questions
                         2. Cover key concepts from the content
                         3. Include one correct answer and three plausible distractors
@@ -277,29 +277,29 @@ app.post('/generate-quiz', upload.none(), async (req, res) => {
             }
         );
 
-        let quizData;
+        let questionData;
         try {
             let content = response.data.choices[0].message.content.trim();
             content = content.replace(/```json\n?|\n?```/g, '');
-            quizData = JSON.parse(content);
+            questionData = JSON.parse(content);
             
-            if (!quizData.questions || !Array.isArray(quizData.questions)) {
-                throw new Error('Invalid quiz data structure');
+            if (!questionData.questions || !Array.isArray(questionData.questions)) {
+                throw new Error('Invalid question data structure');
             }
             
-            console.log('Successfully generated quiz');
-            quizCache.set(cacheKey, quizData);
-            res.json(quizData);
+            console.log('Successfully generated questions');
+            quizCache.set(cacheKey, questionData);
+            res.json(questionData);
         } catch (parseError) {
-            console.error('Error parsing quiz data:', parseError);
+            console.error('Error parsing question data:', parseError);
             res.status(500).json({
-                error: 'Failed to parse quiz data',
+                error: 'Failed to parse question data',
                 details: parseError.message
             });
         }
     } catch (error) {
-        console.error('Error generating quiz:', error);
-        handleApiError(error, res, 'Quiz generation');
+        console.error('Error creating questions:', error);
+        handleApiError(error, res, 'Question creation');
     }
 });
 
