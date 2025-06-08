@@ -11,7 +11,6 @@ const SEA_LANGUAGES = [
   { code: "fil", name: "Filipino", country: "Philippines" },
   { code: "hi", name: "हिंदी", country: "Regional" },
   { code: "id", name: "Bahasa Indonesia", country: "Indonesia" },
-  { code: "jv", name: "Javanese", country: "Indonesia" },
   { code: "km", name: "ខ្មែរ", country: "Cambodia" },
   { code: "lo", name: "ພາສາລາວ", country: "Laos" },
   { code: "ms", name: "Bahasa Melayu", country: "Malaysia" },
@@ -23,9 +22,11 @@ const SEA_LANGUAGES = [
   { code: "tl", name: "Tagalog", country: "Philippines" },
   { code: "ur", name: "اردو", country: "Regional" },
   { code: "vi", name: "Tiếng Việt", country: "Vietnam" }
-
-
 ].sort((a, b) => a.name.localeCompare(b.name));
+
+// Add a comment about Azure OpenAI compatibility
+// Note: Only languages supported by Azure OpenAI GPT-4 are included
+// Removed: jv (Javanese) as it's not supported by Azure OpenAI
 
 const UserProfileForm = ({ onProfileSubmit }) => {
   const { t } = useTranslation();

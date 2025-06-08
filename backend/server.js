@@ -102,6 +102,12 @@ const feedbackCache = new NodeCache({ stdTTL: 600 }); // Cache feedback results 
 const summaryCache = new NodeCache({ stdTTL: 3600 }); // Cache summaries for 1 hour
 const docxCache = new NodeCache({ stdTTL: 3600 }); // Cache docx for 1 hour
 
+// Add supported languages list
+const SUPPORTED_LANGUAGES = [
+    'bn', 'zh', 'zh-hk', 'zh-tw', 'en', 'fil', 'hi', 'id', 'km', 'lo', 'ms', 
+    'my', 'pa', 'ta', 'te', 'th', 'tl', 'ur', 'vi'
+];
+
 // POST /translate endpoint
 app.post('/translate', upload.single('file'), async (req, res) => {
     try {
@@ -139,6 +145,17 @@ app.post('/translate', upload.single('file'), async (req, res) => {
             return res.status(400).json({
                 error: 'Missing preferred language',
                 details: { preferredLanguage: 'Preferred language is required in profile' }
+            });
+        }
+
+        // Check if the language is supported
+        if (!SUPPORTED_LANGUAGES.includes(preferredLanguage)) {
+            return res.status(400).json({
+                error: 'Unsupported language',
+                details: { 
+                    preferredLanguage: `Language '${preferredLanguage}' is not supported by Azure OpenAI. Please select a supported language.`,
+                    supportedLanguages: SUPPORTED_LANGUAGES
+                }
             });
         }
 
