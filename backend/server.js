@@ -655,7 +655,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Explicitly handle root path - serve landing page
 app.get('/', (req, res) => {
   console.log('Handling root path request - serving landing page');
-  const indexPath = path.join(__dirname, 'src/components/LandingPage.js');
+  const indexPath = path.join(__dirname, 'public', 'index.html');
   console.log('Serving index.html from:', indexPath);
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
@@ -674,7 +674,7 @@ app.use('/api', (req, res, next) => {
 // Handle all other routes - serve the React app
 app.get('*', (req, res) => {
   console.log('Handling catch-all route for:', req.url);
-  const indexPath = path.join(__dirname, 'public/index.html');
+  const indexPath = path.join(__dirname, 'public', 'index.html');
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
