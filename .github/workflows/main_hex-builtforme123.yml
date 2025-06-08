@@ -1,36 +1,45 @@
-name: Build and Deploy Hedex to Azure
+name: Build and Deploy to Azure Web App
 
 on:
   push:
     branches:
       - main
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: whymanasa/hedex-deploy-clean
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
-    env:
-      AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
-      AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
-      AZURE_OPENAI_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_DEPLOYMENT }}
-      AZURE_OPENAI_API_VERSION: ${{ secrets.AZURE_OPENAI_API_VERSION }}
-      AZURE_TRANSLATOR_ENDPOINT: ${{ secrets.AZURE_TRANSLATOR_ENDPOINT }}
-      AZURE_TRANSLATOR_KEY: ${{ secrets.AZURE_TRANSLATOR_KEY }}
-      AZURE_TRANSLATOR_REGION: ${{ secrets.AZURE_TRANSLATOR_REGION }}
-      AZURE_FORM_RECOGNIZER_ENDPOINT: ${{ secrets.AZURE_FORM_RECOGNIZER_ENDPOINT }}
-      AZURE_FORM_RECOGNIZER_KEY: ${{ secrets.AZURE_FORM_RECOGNIZER_KEY }}
-
     steps:
-      - name: 🔄 Checkout code
+      - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔐 Login to Azure using service principal
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: 🧱 Set up Bun
+        uses: oven-sh/setup-bun@v1
 
-      - name: 📦 Build and deploy the app using Dockerfile
-        uses: azure/webapps-deploy@v3
+      - name: 📦 Install backend dependencies
+        run: cd backend && bun install
+
+      - name: 🖼️ Install and build frontend
+        run: |
+          cd client
+          bun install
+          bun run build
+
+      - name: 🔐 Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: 🛠️ Build Docker image
+        run: docker build -t $REGISTRY/$IMAGE_NAME:latest .
+
+      - name: 🚀 Push Docker image to GitHub Container Registry
+        run: docker push $REGISTRY/$IMAGE_NAME:latest
+
+      - name: 🌐 Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
         with:
           app-name: hex-builtforme123
           slot-name: production
