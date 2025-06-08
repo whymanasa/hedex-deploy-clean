@@ -1,4 +1,5 @@
 # Hedex - Multilingual Content Processing Platform
+With teh hope to make learners feel "Built for me".
 
 Hedex is a powerful web application that helps users process and understand content in multiple languages. It provides features for translation, summarization, and content analysis with support for various languages.
 
