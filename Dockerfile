@@ -1,29 +1,26 @@
-# Use Bun as base for backend
-FROM oven/bun:1.0 AS base
-
-WORKDIR /app
-
-# Backend install
-COPY backend/ ./backend/
-RUN cd backend && bun install
-
-# Use Node for frontend build
-FROM node:18 AS builder
-WORKDIR /app
-COPY client/ ./client/
-WORKDIR /app/client
-RUN npm install
-RUN npm run build
-
-# Final runtime image
+# Use Bun as the base image
 FROM oven/bun:1.0
+
+# Create working directory
 WORKDIR /app
 
-# Copy backend
-COPY --from=base /app/backend ./backend
+# Copy package files first for better caching
+COPY backend/package.json ./backend/
+COPY client/package.json ./client/
 
-# Copy frontend dist only
-COPY --from=builder /app/client/dist ./client/dist
+# Install dependencies
+RUN cd backend && bun install
+RUN cd client && bun install
 
+# Copy the rest of the files
+COPY backend/ ./backend/
+COPY client/ ./client/
+
+# Build the frontend
+RUN cd client && bun run build
+
+# Expose your app port
 EXPOSE 3000
+
+# Start your app
 CMD ["bun", "backend/server.js"]
