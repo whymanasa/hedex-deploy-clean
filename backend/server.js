@@ -645,11 +645,11 @@ app.post('/download-docx', async (req, res) => {
 });
 
 // React static files
-app.use(express.static(path.join(__dirname, '../client/dist')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Serve index.html for all other routes
 app.get('/*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
 // Start server

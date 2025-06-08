@@ -22,6 +22,9 @@ RUN cd client && bun run build && ls -la dist/
 # Create the uploads directory
 RUN mkdir -p backend/uploads
 
+# Copy the built frontend to the correct location
+RUN cp -r client/dist/* backend/public/ || mkdir -p backend/public && cp -r client/dist/* backend/public/
+
 # Expose your app port
 EXPOSE 3000
 
