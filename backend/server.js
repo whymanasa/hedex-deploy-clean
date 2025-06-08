@@ -43,28 +43,33 @@ if (!fs.existsSync(uploadsDir)) {
 app.use(cors());
 app.use(express.json());
 
-// Add logging for incoming requests
+// Add debugging middleware
 app.use((req, res, next) => {
-    console.log(`Received ${req.method} request for ${req.url}`);
-    if (req.file) {
-        console.log('File received:', {
-            filename: req.file.originalname,
-            mimetype: req.file.mimetype,
-            size: req.file.size
-        });
+  console.log(`Received ${req.method} request for ${req.url}`);
+  console.log('Current directory:', __dirname);
+  console.log('Public directory exists:', fs.existsSync(path.join(__dirname, 'public')));
+  if (fs.existsSync(path.join(__dirname, 'public'))) {
+    console.log('Public directory contents:', fs.readdirSync(path.join(__dirname, 'public')));
+  }
+  if (req.file) {
+    console.log('File received:', {
+        filename: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+    });
+  }
+  if (req.body) {
+    console.log('Raw request body:', req.body);
+    if (req.body.profile) {
+      try {
+        const profile = JSON.parse(req.body.profile);
+        console.log('Parsed profile:', profile);
+      } catch (e) {
+        console.error('Error parsing profile in middleware:', e);
+      }
     }
-    if (req.body) {
-        console.log('Raw request body:', req.body);
-        if (req.body.profile) {
-            try {
-                const profile = JSON.parse(req.body.profile);
-                console.log('Parsed profile:', profile);
-            } catch (e) {
-                console.error('Error parsing profile in middleware:', e);
-            }
-        }
-    }
-    next();
+  }
+  next();
 });
 
 // Add axios configuration at the top after imports
@@ -644,17 +649,43 @@ app.post('/download-docx', async (req, res) => {
     }
 });
 
-// React static files
+// Serve static files from public directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Serve index.html for all other routes
-app.get('/*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/index.html'));
+// Explicitly handle root path
+app.get('/', (req, res) => {
+  console.log('Handling root path request');
+  const indexPath = path.join(__dirname, 'public/index.html');
+  console.log('Serving index.html from:', indexPath);
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    console.error('index.html not found at:', indexPath);
+    res.status(404).send('index.html not found');
+  }
+});
+
+// Handle all other routes
+app.get('*', (req, res) => {
+  console.log('Handling catch-all route for:', req.url);
+  const indexPath = path.join(__dirname, 'public/index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    console.error('index.html not found at:', indexPath);
+    res.status(404).send('index.html not found');
+  }
 });
 
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+  console.log('Server directory:', __dirname);
+  console.log('Public directory:', path.join(__dirname, 'public'));
+  // List contents of public directory on startup
+  if (fs.existsSync(path.join(__dirname, 'public'))) {
+    console.log('Public directory contents:', fs.readdirSync(path.join(__dirname, 'public')));
+  }
 });
 
 
