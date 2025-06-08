@@ -652,20 +652,26 @@ app.post('/download-docx', async (req, res) => {
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Explicitly handle root path
+// Explicitly handle root path - serve landing page
 app.get('/', (req, res) => {
-  console.log('Handling root path request');
-  const indexPath = path.join(__dirname, 'public/index.html');
+  console.log('Handling root path request - serving landing page');
+  const indexPath = path.join(__dirname, 'src/components/LandingPage.js');
   console.log('Serving index.html from:', indexPath);
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
     console.error('index.html not found at:', indexPath);
-    res.status(404).send('index.html not found');
+    res.status(404).send('Landing page not found');
   }
 });
 
-// Handle all other routes
+// API routes
+app.use('/api', (req, res, next) => {
+  console.log('API request received:', req.method, req.url);
+  next();
+});
+
+// Handle all other routes - serve the React app
 app.get('*', (req, res) => {
   console.log('Handling catch-all route for:', req.url);
   const indexPath = path.join(__dirname, 'public/index.html');
@@ -673,7 +679,7 @@ app.get('*', (req, res) => {
     res.sendFile(indexPath);
   } else {
     console.error('index.html not found at:', indexPath);
-    res.status(404).send('index.html not found');
+    res.status(404).send('Page not found');
   }
 });
 

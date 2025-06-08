@@ -29,12 +29,36 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
         <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/language-selector" element={<LanguageSelectorLanding onLanguageSelect={handleLanguageSelection} />} />
-          <Route path="/profile" element={<UserProfileForm onProfileSubmit={handleProfileSubmit} />} />
-          <Route path="/main" element={<MainContent messages={messages} setMessages={setMessages} />} />
+          {/* Landing page as the main entry point */}
+          <Route path="/" element={
+            <div>
+              <Navbar />
+              <LandingPage />
+            </div>
+          } />
+          
+          {/* Other routes */}
+          <Route path="/language-selector" element={
+            <div>
+              <Navbar />
+              <LanguageSelectorLanding onLanguageSelect={handleLanguageSelection} />
+            </div>
+          } />
+          <Route path="/profile" element={
+            <div>
+              <Navbar />
+              <UserProfileForm onProfileSubmit={handleProfileSubmit} />
+            </div>
+          } />
+          <Route path="/main" element={
+            <div>
+              <Navbar />
+              <MainContent messages={messages} setMessages={setMessages} />
+            </div>
+          } />
+          
+          {/* Redirect any unknown routes to landing page */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
