@@ -1,16 +1,18 @@
-FROM oven/bun:1.0
+FROM node:20-alpine
 
-# Create app directory
 WORKDIR /app
 
-# Copy files
+# Copy everything
 COPY . .
 
-# Install dependencies
-RUN cd backend && bun install && cd ../client && bun install && bun run build
+# Install server dependencies
+WORKDIR /app/backend
+RUN npm install
 
-# Expose the port your app runs on
-EXPOSE 3000
+# Install client dependencies and build
+WORKDIR /app/client
+RUN npm install && npm run build
 
-# Start your app
-CMD ["bun", "backend/server.js"]
+# If using a Node server:
+WORKDIR /app
+CMD ["node", "backend/server.js"]
