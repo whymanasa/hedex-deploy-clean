@@ -357,7 +357,11 @@ app.post('/summarize', upload.single('file'), async (req, res) => {
             file: req.file ? {
                 filename: req.file.originalname,
                 size: req.file.size
-            } : null
+            } : null,
+            headers: req.headers,
+            origin: req.get('origin'),
+            url: req.url,
+            method: req.method
         });
 
         let content = req.body.content;
@@ -389,6 +393,17 @@ app.post('/summarize', upload.single('file'), async (req, res) => {
             });
         }
 
+        // Check if the language is supported
+        if (!SUPPORTED_LANGUAGES.includes(preferredLanguage)) {
+            return res.status(400).json({
+                error: 'Unsupported language',
+                details: { 
+                    preferredLanguage: `Language '${preferredLanguage}' is not supported. Please use one of the supported languages.`,
+                    supportedLanguages: SUPPORTED_LANGUAGES
+                }
+            });
+        }
+
         if (!content && !req.file) {
             return res.status(400).json({
                 error: 'Missing required fields',
@@ -412,9 +427,11 @@ app.post('/summarize', upload.single('file'), async (req, res) => {
         const cacheKey = `summary-${Buffer.from(content).toString('base64')}-${preferredLanguage}`;
         const cachedSummary = summaryCache.get(cacheKey);
         if (cachedSummary) {
+            console.log('Returning cached summary');
             return res.json({ summary: cachedSummary });
         }
 
+        console.log('Generating new summary with OpenAI');
         // Generate summary in English first
         const openAISummaryResponse = await axiosInstance.post(
             `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version=${process.env.AZURE_OPENAI_API_VERSION}`,
@@ -445,6 +462,7 @@ app.post('/summarize', upload.single('file'), async (req, res) => {
 
         const localizedSummary = translationResult.content;
         summaryCache.set(cacheKey, localizedSummary);
+        console.log('Successfully generated and translated summary');
         res.json({ summary: localizedSummary });
 
     } catch (error) {

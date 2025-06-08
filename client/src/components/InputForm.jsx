@@ -162,10 +162,17 @@ function InputForm({ setLocalizedContent, preferredLanguage, messages, setMessag
         formData.append('content', courseContent);
       }
 
-      const response = await axios.post('/summarize', formData, {
+      // Use improved request configuration
+      const response = await axios({
+        method: 'post',
+        url: '/summarize',
+        data: formData,
         headers: {
           'Content-Type': 'multipart/form-data',
+          'Accept': 'application/json',
         },
+        timeout: 30000,
+        withCredentials: true,
       });
 
       if (response.data.summary) {
