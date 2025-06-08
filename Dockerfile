@@ -16,8 +16,11 @@ RUN cd client && bun install
 COPY backend/ ./backend/
 COPY client/ ./client/
 
-# Build the frontend
-RUN cd client && bun run build
+# Build the frontend and verify the build
+RUN cd client && bun run build && ls -la dist/
+
+# Create the uploads directory
+RUN mkdir -p backend/uploads
 
 # Expose your app port
 EXPOSE 3000
