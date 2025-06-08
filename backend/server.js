@@ -39,7 +39,11 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*', // In production, replace with your actual domain
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Add debugging middleware
@@ -50,23 +54,8 @@ app.use((req, res, next) => {
   if (fs.existsSync(path.join(__dirname, 'public'))) {
     console.log('Public directory contents:', fs.readdirSync(path.join(__dirname, 'public')));
   }
-  if (req.file) {
-    console.log('File received:', {
-        filename: req.file.originalname,
-        mimetype: req.file.mimetype,
-        size: req.file.size
-    });
-  }
   if (req.body) {
-    console.log('Raw request body:', req.body);
-    if (req.body.profile) {
-      try {
-        const profile = JSON.parse(req.body.profile);
-        console.log('Parsed profile:', profile);
-      } catch (e) {
-        console.error('Error parsing profile in middleware:', e);
-      }
-    }
+    console.log('Request body:', req.body);
   }
   next();
 });
@@ -116,6 +105,14 @@ const docxCache = new NodeCache({ stdTTL: 3600 }); // Cache docx for 1 hour
 // POST /translate endpoint
 app.post('/translate', upload.single('file'), async (req, res) => {
     try {
+        console.log('Translation request received:', {
+            body: req.body,
+            file: req.file ? {
+                filename: req.file.originalname,
+                size: req.file.size
+            } : null
+        });
+
         let content = req.body.content;
         let profile;
         
@@ -128,7 +125,9 @@ app.post('/translate', upload.single('file'), async (req, res) => {
 
         try {
             profile = JSON.parse(req.body.profile);
+            console.log('Parsed profile:', profile);
         } catch (e) {
+            console.error('Error parsing profile:', e);
             return res.status(400).json({
                 error: 'Invalid profile data',
                 details: { profile: 'Profile data is not valid JSON' }
@@ -177,6 +176,7 @@ app.post('/translate', upload.single('file'), async (req, res) => {
         quizCache.set(cacheKey, translationResult.content); // Cache the translation result
         res.json({ localizedContent: translationResult.content });
     } catch (err) {
+        console.error('Translation error:', err);
         handleApiError(err, res, 'Translation');
     }
 });

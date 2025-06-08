@@ -98,7 +98,7 @@ function InputForm({ setLocalizedContent, preferredLanguage, messages, setMessag
         formData.append('content', courseContent);
       }
       
-      const response = await axios.post('http://localhost:3000/translate', formData, {
+      const response = await axios.post('/translate', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -162,7 +162,7 @@ function InputForm({ setLocalizedContent, preferredLanguage, messages, setMessag
         formData.append('content', courseContent);
       }
 
-      const response = await axios.post('http://localhost:3000/summarize', formData, {
+      const response = await axios.post('/summarize', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
