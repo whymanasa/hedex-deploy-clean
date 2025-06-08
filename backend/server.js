@@ -184,6 +184,7 @@ app.post('/translate', upload.single('file'), async (req, res) => {
 // POST /generate-quiz endpoint
 app.post('/generate-quiz', async (req, res) => {
     try {
+        console.log('Quiz generation request received:', req.body);
         const { content, language } = req.body;
         
         if (!content) {
@@ -244,7 +245,7 @@ app.post('/generate-quiz', async (req, res) => {
                 throw new Error('Invalid quiz data structure');
             }
             
-            quizCache.set(cacheKey, quizData); // Cache the quiz result
+            quizCache.set(cacheKey, quizData);
             res.json(quizData);
         } catch (parseError) {
             console.error('Error parsing quiz data:', parseError);
@@ -254,6 +255,7 @@ app.post('/generate-quiz', async (req, res) => {
             });
         }
     } catch (error) {
+        console.error('Error generating quiz:', error);
         handleApiError(error, res, 'Quiz generation');
     }
 });
@@ -307,6 +309,14 @@ app.post('/generate-feedback', async (req, res) => {
 // POST /summarize endpoint
 app.post('/summarize', upload.single('file'), async (req, res) => {
     try {
+        console.log('Summarization request received:', {
+            body: req.body,
+            file: req.file ? {
+                filename: req.file.originalname,
+                size: req.file.size
+            } : null
+        });
+
         let content = req.body.content;
         let profile;
 
@@ -319,7 +329,9 @@ app.post('/summarize', upload.single('file'), async (req, res) => {
 
         try {
             profile = JSON.parse(req.body.profile);
+            console.log('Parsed profile:', profile);
         } catch (e) {
+            console.error('Error parsing profile:', e);
             return res.status(400).json({
                 error: 'Invalid profile data',
                 details: { profile: 'Profile data is not valid JSON' }
@@ -346,6 +358,7 @@ app.post('/summarize', upload.single('file'), async (req, res) => {
             try {
                 content = await pdfService.extractTextFromPDF(req.file.buffer);
             } catch (pdfError) {
+                console.error('PDF processing error:', pdfError);
                 return res.status(500).json({
                     error: 'PDF processing failed',
                     details: pdfError.message
@@ -374,7 +387,7 @@ app.post('/summarize', upload.single('file'), async (req, res) => {
                     }
                 ],
                 temperature: 0.7,
-                max_tokens: 500 // Adjust as needed for summary length
+                max_tokens: 500
             }
         );
 
@@ -388,7 +401,7 @@ app.post('/summarize', upload.single('file'), async (req, res) => {
         );
 
         const localizedSummary = translationResult.content;
-        summaryCache.set(cacheKey, localizedSummary); // Cache the localized summary result
+        summaryCache.set(cacheKey, localizedSummary);
         res.json({ summary: localizedSummary });
 
     } catch (error) {
@@ -582,10 +595,14 @@ const parseMarkdownToDocx = (markdownContent) => {
 // POST /download-docx endpoint
 app.post('/download-docx', async (req, res) => {
     try {
+        console.log('DOCX generation request received:', req.body);
         const { content } = req.body;
 
         if (!content) {
-            return res.status(400).json({ error: 'Missing content for DOCX generation' });
+            return res.status(400).json({ 
+                error: 'Missing content',
+                details: { content: 'Content is required for DOCX generation' }
+            });
         }
 
         const cacheKey = `docx-${Buffer.from(content).toString('base64')}`;
@@ -651,6 +668,9 @@ app.post('/download-docx', async (req, res) => {
 // Serve static files from public directory
 const publicPath = path.join(__dirname, 'public');
 app.use(express.static(publicPath));
+
+// Serve translation files
+app.use('/locales', express.static(path.join(publicPath, 'locales')));
 
 // API routes
 app.use('/api', (req, res, next) => {

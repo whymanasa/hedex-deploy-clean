@@ -136,12 +136,12 @@ function InputForm({ setLocalizedContent, preferredLanguage, messages, setMessag
     e.preventDefault();
 
     if (!userProfile) {
-      alert("Please complete your profile first.");
+      alert(t('error.missing_profile'));
       return;
     }
 
     if (!courseContent.trim() && !fileInputRef.current?.files[0]) {
-      alert("Please enter some content or upload a file to summarize.");
+      alert(t('error.missing_content'));
       return;
     }
 
@@ -178,10 +178,10 @@ function InputForm({ setLocalizedContent, preferredLanguage, messages, setMessag
         throw new Error('No summary received from server');
       }
     } catch (error) {
-      console.error('Summarization error:', error.response?.data || error.message);
+      console.error('Summarization error:', error);
       const errorMessage = error.response?.data?.details
         ? Object.values(error.response.data.details).filter(Boolean).join(', ')
-        : error.response?.data?.error || error.message || 'Something went wrong during summarization. Please try again.';
+        : error.response?.data?.error || error.message || t('error.summarization_failed');
 
       setMessages(prev => [...prev, {
         type: 'error',
@@ -196,9 +196,71 @@ function InputForm({ setLocalizedContent, preferredLanguage, messages, setMessag
     }
   };
 
+  const handleDownloadDocx = async (content) => {
+    try {
+      const response = await axios.post('/download-docx', { content }, {
+        responseType: 'blob'
+      });
+
+      // Create a blob from the response data
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      });
+
+      // Create a download link and trigger the download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'localized-content.docx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading DOCX:', error);
+      const errorMessage = error.response?.data?.details
+        ? Object.values(error.response.data.details).filter(Boolean).join(', ')
+        : error.response?.data?.error || error.message || 'Failed to download DOCX. Please try again.';
+
+      setMessages(prev => [...prev, {
+        type: 'error',
+        content: errorMessage
+      }]);
+    }
+  };
+
   const handleMessageClick = (message) => {
     if (message.type === 'assistant') {
       setLocalizedContent(message.content);
+    }
+  };
+
+  const handleGenerateQuiz = async (content, language) => {
+    try {
+      console.log('Generating quiz for:', { content, language });
+      const response = await axios.post('/generate-quiz', {
+        content,
+        language
+      });
+
+      if (response.data.questions) {
+        setMessages(prev => [...prev, {
+          type: 'assistant',
+          content: JSON.stringify(response.data, null, 2)
+        }]);
+      } else {
+        throw new Error('Invalid quiz data received');
+      }
+    } catch (error) {
+      console.error('Error generating quiz:', error);
+      const errorMessage = error.response?.data?.details
+        ? Object.values(error.response.data.details).filter(Boolean).join(', ')
+        : error.response?.data?.error || error.message || 'Failed to generate quiz. Please try again.';
+
+      setMessages(prev => [...prev, {
+        type: 'error',
+        content: errorMessage
+      }]);
     }
   };
 
