@@ -1,18 +1,18 @@
-FROM node:20-alpine
+# Use Bun base image
+FROM oven/bun:1.0
 
+# Set working directory
 WORKDIR /app
 
-# Copy everything
-COPY . .
+# Copy backend files
+COPY backend/ ./backend/
 
-# Install server dependencies
-WORKDIR /app/backend
-RUN npm install
+# Install backend dependencies
+RUN cd backend && bun install
 
-# Install client dependencies and build
-WORKDIR /app/client
-RUN npm install && npm run build
+# Copy prebuilt frontend
+COPY client/dist ./client/dist
 
-# If using a Node server:
-WORKDIR /app
-CMD ["node", "backend/server.js"]
+# Serve with your backend
+CMD ["bun", "backend/server.js"]
+
