@@ -1,47 +1,27 @@
-name: Build and Deploy to Azure Web App
+name: Deploy to Azure from Docker
 
 on:
   push:
     branches:
       - main
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: whymanasa/hedex-deploy-clean
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
     steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🧱 Set up Bun
-        uses: oven-sh/setup-bun@v1
-
-      - name: 📦 Install backend dependencies
-        run: cd backend && bun install
-
-      - name: 🖼️ Install and build frontend
-        run: |
-          cd client
-          bun install
-          bun run build
+      - name: 🧾 Checkout code
+        uses: actions/checkout@v3
 
       - name: 🔐 Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: 🛠️ Build Docker image
-        run: docker build -t $REGISTRY/$IMAGE_NAME:latest .
-
-      - name: 🚀 Push Docker image to GitHub Container Registry
-        run: docker push $REGISTRY/$IMAGE_NAME:latest
-
-      - name: 🌐 Deploy to Azure Web App
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: hex-builtforme123
-          slot-name: production
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          images: ghcr.io/whymanasa/hedex-deploy-clean:latest
+      - name: 🛠️ Build and push Docker image
+        run: |
+          docker build -t ghcr.io/whymanasa/hedex-deploy-clean:latest .
+          docker push ghcr.io/whymanasa/hedex-deploy-clean:latest
