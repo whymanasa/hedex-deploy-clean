@@ -36,11 +36,13 @@ function ContentQuiz({ content, language, onClose }) {
         try {
             setIsLoading(true);
             setError(null);
-            const response = await fetch('http://localhost:3000/generate-quiz', {
+            const response = await fetch('/create-questions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     content,
                     language
@@ -61,7 +63,11 @@ function ContentQuiz({ content, language, onClose }) {
             setIsLoading(false);
         } catch (error) {
             console.error('Error generating quiz:', error);
-            setError(error.message || t('quiz.error.tryAgain'));
+            if (error.message.includes('ERR_BLOCKED_BY_CLIENT')) {
+                setError(t('quiz.error.blockedByClient', 'Request blocked by browser extension. Please disable ad blocker or try in incognito mode.'));
+            } else {
+                setError(error.message || t('quiz.error.tryAgain'));
+            }
             setIsLoading(false);
         }
     };
