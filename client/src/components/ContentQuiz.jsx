@@ -102,14 +102,16 @@ function ContentQuiz({ content, language, onClose }) {
         setScore(finalScore);
         
         try {
-            const response = await fetch('http://localhost:3000/generate-feedback', {
+            const response = await fetch('/review-maker', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     score: finalScore,
-                    language: language // Use the passed language prop
+                    language: language
                 }),
             });
 
@@ -122,7 +124,11 @@ function ContentQuiz({ content, language, onClose }) {
             setFeedback(data.feedback);
         } catch (feedbackError) {
             console.error('Error fetching personalized feedback:', feedbackError);
-            setFeedback('Could not generate personalized feedback.'); // Fallback feedback
+            if (feedbackError.message.includes('ERR_BLOCKED_BY_CLIENT')) {
+                setFeedback(t('quiz.error.blockedByClient', 'Request blocked by browser extension. Please disable ad blocker or try in incognito mode.'));
+            } else {
+                setFeedback('Could not generate personalized feedback.'); // Fallback feedback
+            }
         }
     };
 

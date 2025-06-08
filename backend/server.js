@@ -303,18 +303,44 @@ app.post('/create-questions', upload.none(), async (req, res) => {
     }
 });
 
-// POST /generate-feedback endpoint
-app.post('/generate-feedback', async (req, res) => {
+// POST /review-maker endpoint (renamed from /generate-feedback)
+app.post('/review-maker', async (req, res) => {
     try {
+        console.log('Review request received:', {
+            body: req.body,
+            headers: req.headers,
+            origin: req.get('origin'),
+            url: req.url,
+            method: req.method
+        });
+
         const { score, language } = req.body;
 
         if (score === undefined || language === undefined) {
-            return res.status(400).json({ error: 'Missing score or language' });
+            return res.status(400).json({ 
+                error: 'Missing required fields',
+                details: { 
+                    score: 'Score is required',
+                    language: 'Language is required'
+                }
+            });
         }
 
-        const cacheKey = `feedback-${score}-${language}`;
+        // Validate language
+        if (!SUPPORTED_LANGUAGES.includes(language)) {
+            return res.status(400).json({
+                error: 'Unsupported language',
+                details: { 
+                    language: `Language '${language}' is not supported. Please use one of the supported languages.`,
+                    supportedLanguages: SUPPORTED_LANGUAGES
+                }
+            });
+        }
+
+        const cacheKey = `review-${score}-${language}`;
         const cachedFeedback = feedbackCache.get(cacheKey);
         if (cachedFeedback) {
+            console.log('Returning cached review');
             return res.json({ feedback: cachedFeedback });
         }
 
@@ -325,6 +351,7 @@ app.post('/generate-feedback', async (req, res) => {
             needs_improvement: `Provide encouraging feedback in ${language} that reassures them about their score (${score}%) and encourages them to keep practicing. Keep it very concise, around 10 words. Make it culturally appropriate for ${language} speakers.`
         };
 
+        console.log('Generating new review with OpenAI');
         const response = await axiosInstance.post(
             `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version=${process.env.AZURE_OPENAI_API_VERSION}`,
             {
@@ -336,16 +363,18 @@ app.post('/generate-feedback', async (req, res) => {
                     { role: "user", content: prompts[feedbackType] }
                 ],
                 temperature: 0.7,
-                max_tokens: 30 // Adjusted max_tokens to get ~10 words, allowing for variations in word length and language
+                max_tokens: 30
             }
         );
 
         const feedback = response.data.choices[0].message.content.trim();
-        feedbackCache.set(cacheKey, feedback); // Cache the feedback result
+        feedbackCache.set(cacheKey, feedback);
+        console.log('Successfully generated review');
         res.json({ feedback });
 
     } catch (error) {
-        handleApiError(error, res, 'Feedback generation');
+        console.error('Error generating review:', error);
+        handleApiError(error, res, 'Review generation');
     }
 });
 
