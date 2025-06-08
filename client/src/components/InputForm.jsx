@@ -238,9 +238,21 @@ function InputForm({ setLocalizedContent, preferredLanguage, messages, setMessag
   const handleGenerateQuiz = async (content, language) => {
     try {
       console.log('Generating quiz for:', { content, language });
-      const response = await axios.post('/generate-quiz', {
-        content,
-        language
+      
+      // Validate input
+      if (!content) {
+        throw new Error(t('error.missing_content'));
+      }
+
+      // Create form data
+      const formData = new FormData();
+      formData.append('content', content);
+      formData.append('language', language || 'en');
+
+      const response = await axios.post('/generate-quiz', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       if (response.data.questions) {
@@ -255,7 +267,7 @@ function InputForm({ setLocalizedContent, preferredLanguage, messages, setMessag
       console.error('Error generating quiz:', error);
       const errorMessage = error.response?.data?.details
         ? Object.values(error.response.data.details).filter(Boolean).join(', ')
-        : error.response?.data?.error || error.message || 'Failed to generate quiz. Please try again.';
+        : error.response?.data?.error || error.message || t('error.quiz_generation_failed');
 
       setMessages(prev => [...prev, {
         type: 'error',
@@ -263,6 +275,18 @@ function InputForm({ setLocalizedContent, preferredLanguage, messages, setMessag
       }]);
     }
   };
+
+  // Add a button for quiz generation
+  const renderQuizButton = () => (
+    <button
+      type="button"
+      onClick={() => handleGenerateQuiz(courseContent, userProfile?.preferredLanguage)}
+      className="px-6 bg-[#71C0BB] text-[#332D56] rounded-md hover:bg-[#4E6688] hover:text-[#E3EEB2] disabled:opacity-50 transition-colors duration-200"
+      disabled={!courseContent.trim() || !userProfile}
+    >
+      {t('generate_quiz')}
+    </button>
+  );
 
   return (
     <div className="flex flex-col flex-1 border border-[#71C0BB] rounded-lg overflow-hidden bg-white">
@@ -298,7 +322,7 @@ function InputForm({ setLocalizedContent, preferredLanguage, messages, setMessag
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="p-2 text-[#4E6688] hover:text-[#332D56]"
-              title="Upload file"
+              title={t('upload_file')}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -320,35 +344,38 @@ function InputForm({ setLocalizedContent, preferredLanguage, messages, setMessag
               value={courseContent}
               onChange={(e) => setCourseContent(e.target.value)}
             />
-            <button
-              type="submit"
-              className="px-6 bg-[#4E6688] text-[#E3EEB2] rounded-md hover:bg-[#332D56] disabled:opacity-50 transition-colors duration-200"
-              disabled={loading || summarizing}
-            >
-              {loading ? (
-                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              ) : (
-                t("translate_button")
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={handleSummarize}
-              className="px-6 bg-[#71C0BB] text-[#332D56] rounded-md hover:bg-[#4E6688] hover:text-[#E3EEB2] disabled:opacity-50 transition-colors duration-200"
-              disabled={loading || summarizing}
-            >
-              {summarizing ? (
-                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              ) : (
-                t("summarize_button")
-              )}
-            </button>
+            <div className="flex flex-col space-y-2">
+              <button
+                type="submit"
+                className="px-6 bg-[#4E6688] text-[#E3EEB2] rounded-md hover:bg-[#332D56] disabled:opacity-50 transition-colors duration-200"
+                disabled={loading || summarizing}
+              >
+                {loading ? (
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  t("translate_button")
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleSummarize}
+                className="px-6 bg-[#71C0BB] text-[#332D56] rounded-md hover:bg-[#4E6688] hover:text-[#E3EEB2] disabled:opacity-50 transition-colors duration-200"
+                disabled={loading || summarizing}
+              >
+                {summarizing ? (
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  t("summarize_button")
+                )}
+              </button>
+              {renderQuizButton()}
+            </div>
           </div>
         </form>
       </div>

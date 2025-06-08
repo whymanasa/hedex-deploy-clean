@@ -182,7 +182,7 @@ app.post('/translate', upload.single('file'), async (req, res) => {
 });
 
 // POST /generate-quiz endpoint
-app.post('/generate-quiz', async (req, res) => {
+app.post('/generate-quiz', upload.none(), async (req, res) => {
     try {
         console.log('Quiz generation request received:', req.body);
         const { content, language } = req.body;
@@ -194,7 +194,7 @@ app.post('/generate-quiz', async (req, res) => {
             });
         }
 
-        const cacheKey = `quiz-${Buffer.from(content).toString('base64')}-${language}`;
+        const cacheKey = `quiz-${Buffer.from(content).toString('base64')}-${language || 'en'}`;
         const cachedQuiz = quizCache.get(cacheKey);
         if (cachedQuiz) {
             return res.json(cachedQuiz);
